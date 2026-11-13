@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión de Reservas de Guaguas — Online</title>
+<style>
+  :root{
+    --azul:#0d47a1; --azul2:#1565c0; --fondo:#f4f6f9; --borde:#d0d7e2;
+    --texto:#1a2330; --ok:#1b7a3d; --rojo:#b3261e;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family: Arial, Helvetica, sans-serif;
+    background:var(--fondo); color:var(--texto);
+    font-size:16px; line-height:1.45;
+  }
+  header{
+    background:var(--azul); color:#fff; padding:14px 16px;
+  }
+  header h1{font-size:1.25rem;}
+  header p{font-size:.85rem; opacity:.9;}
+  .estado{
+    display:inline-flex; align-items:center; gap:7px;
+    background:rgba(255,255,255,.15); border-radius:14px;
+    padding:4px 12px; font-size:.8rem; margin-top:8px;
+  }
+  .estado .punto{width:10px; height:10px; border-radius:50%; background:#ffca28; flex-shrink:0;}
+  .estado.on .punto{background:#69f0ae;}
+  main{max-width:1000px; margin:0 auto; padding:14px;}
+  .card{
+    background:#fff; border:1px solid var(--borde); border-radius:8px;
+    padding:14px; margin-bottom:14px;
+  }
+  .card h2{font-size:1.05rem; margin-bottom:10px; color:var(--azul);}
+  label{display:block; font-size:.85rem; font-weight:bold; margin-bottom:3px;}
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:10px;
+  }
+  input, select{
+    width:100%; padding:9px 10px; font-size:1rem;
+    border:1px solid var(--borde); border-radius:6px; background:#fff;
+  }
+  input:focus, select:focus{outline:2px solid var(--azul2); border-color:var(--azul2);}
+  .btn{
+    display:inline-block; padding:10px 18px; font-size:1rem; border:none;
+    border-radius:6px; cursor:pointer; font-weight:bold;
+  }
+  .btn-primario{background:var(--azul); color:#fff;}
+  .btn-primario:hover{background:var(--azul2);}
+  .btn-sec{background:#e8edf5; color:var(--azul); border:1px solid var(--borde);}
+  .btn-peligro{background:#fdecea; color:var(--rojo); border:1px solid #f2b8b5;
+    padding:4px 10px; font-size:.85rem;}
+  .acciones{margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;}
+  table{width:100%; border-collapse:collapse; font-size:.92rem;}
+  th, td{padding:8px 6px; border-bottom:1px solid var(--borde); text-align:left;}
+  th{background:#eef2f8; color:var(--azul); font-size:.8rem; text-transform:uppercase;}
+  tr:hover td{background:#f6f9ff;}
+  .etiqueta-ruta{
+    display:inline-block; background:#e3f0ff; color:var(--azul);
+    border-radius:12px; padding:2px 10px; font-size:.8rem; white-space:nowrap;
+  }
+  .vacio{text-align:center; color:#6b7787; padding:18px 0;}
+  .estadisticas{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px;}
+  .stat{
+    flex:1; min-width:130px; background:#fff; border:1px solid var(--borde);
+    border-radius:8px; padding:10px 14px;
+  }
+  .stat .num{font-size:1.4rem; font-weight:bold; color:var(--azul);}
+  .stat .lbl{font-size:.78rem; color:#5c6b7e;}
+  .msg{padding:10px 12px; border-radius:6px; margin-top:10px; font-size:.9rem; display:none;}
+  .msg-ok{background:#e6f4ea; color:var(--ok); border:1px solid #a9d8b6; display:block;}
+  .msg-error{background:#fdecea; color:var(--rojo); border:1px solid #f2b8b5; display:block;}
+  .barra-busqueda{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
+  .barra-busqueda select, .barra-busqueda input{flex:1; min-width:140px;}
+  footer{text-align:center; font-size:.78rem; color:#6b7787; padding:14px;}
+  @media print{
+    header, .card-formulario, .barra-busqueda, .btn, footer, .no-imprimir{display:none;}
+    body{background:#fff;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🚌 Reservas de Guaguas</h1>
+  <p>Sistema de gestión en línea — todos los gestores ven las mismas reservas al instante</p>
+  <div class="estado" id="estadoConexion"><span class="punto"></span><span id="estadoTexto">Conectando…</span></div>
+</header>
+
+<main>
+
+  <!-- Estadísticas -->
+  <div class="estadisticas">
+    <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">Reservas registradas</div></div>
+    <div class="stat"><div class="num" id="statHoy">0</div><div class="lbl">Para hoy</div></div>
+    <div class="stat"><div class="num" id="statMonto">0</div><div class="lbl">Monto total (CUP)</div></div>
+  </div>
+
+  <!-- Formulario -->
+  <div class="card card-formulario">
+    <h2>➕ Nueva reserva</h2>
+    <form id="formReserva" novalidate>
+      <div class="grid">
+        <div>
+          <label for="ruta">Ruta de la guagua *</label>
+          <select id="ruta" required>
+            <option value="">— Seleccione la ruta —</option>
+            <option value="La Habana → Imías">La Habana → Imías</option>
+            <option value="Imías → La Habana">Imías → La Habana</option>
+            <option value="Villa Clara → La Habana">Villa Clara → La Habana</option>
+            <option value="La Habana → Santa Clara">La Habana → Santa Clara</option>
+            <option value="Otra">Otra (personalizada)</option>
+          </select>
+        </div>
+        <div>
+          <label for="nombreCliente">Nombre del cliente *</label>
+          <input type="text" id="nombreCliente" placeholder="Ej: Juan Pérez Rodríguez" required autocomplete="off">
+        </div>
+        <div>
+          <label for="telefono">Teléfono del cliente *</label>
+          <input type="tel" id="telefono" placeholder="Ej: 55321478" required>
+        </div>
+        <div>
+          <label for="fecha">Fecha (día/mes/año) *</label>
+          <input type="text" id="fecha" placeholder="dd/mm/aaaa" maxlength="10" required
+                 inputmode="numeric" autocomplete="off">
+        </div>
+        <div>
+          <label for="recogida">Lugar de recogida *</label>
+          <input type="text" id="recogida" placeholder="Ej: Terminal de Ómnibus" required>
+        </div>
+        <div>
+          <label for="destino">Destino *</label>
+          <input type="text" id="destino" placeholder="Ej: Imías" required>
+        </div>
+        <div>
+          <label for="precio">Precio (CUP) *</label>
+          <input type="number" id="precio" placeholder="Ej: 2500" min="0" step="1" required>
+        </div>
+        <div>
+          <label for="gestor">Nombre del gestor *</label>
+          <input type="text" id="gestor" placeholder="Ej: Marcos Trujillo" required>
+        </div>
+      </div>
+      <div class="acciones">
+        <button type="submit" class="btn btn-primario">💾 Guardar reserva</button>
+        <button type="reset" class="btn btn-sec">Limpiar</button>
+      </div>
+      <div class="msg" id="mensaje" role="alert"></div>
+    </form>
+  </div>
+
+  <!-- Lista de reservas -->
+  <div class="card">
+    <h2>📋 Reservas registradas</h2>
+    <div class="barra-busqueda">
+      <select id="filtroRuta">
+        <option value="">Todas las rutas</option>
+        <option value="La Habana → Imías">La Habana → Imías</option>
+        <option value="Imías → La Habana">Imías → La Habana</option>
+        <option value="Villa Clara → La Habana">Villa Clara → La Habana</option>
+        <option value="La Habana → Santa Clara">La Habana → Santa Clara</option>
+        <option value="Otra">Otra</option>
+      </select>
+      <input type="text" id="buscarTel" placeholder="Buscar por nombre o teléfono...">
+      <input type="text" id="filtroFecha" placeholder="Filtrar fecha dd/mm/aaaa" maxlength="10">
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th><th>Cliente</th><th>Ruta</th><th>Recogida</th><th>Destino</th>
+            <th>Teléfono</th><th>Precio</th><th>Gestor</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tablaReservas"></tbody>
+      </table>
+      <div class="vacio" id="vacio">No hay reservas registradas todavía.</div>
+    </div>
+    <div class="acciones">
+      <button class="btn btn-sec" onclick="exportarCSV()">⬇️ Exportar (CSV)</button>
+      <button class="btn btn-sec" onclick="window.print()">🖨️ Imprimir</button>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>Los datos se guardan en línea y se sincronizan entre todos los dispositivos. <span class="no-imprimir">| v2.0 — Proyecto: guaguas-a51fd</span></p>
+</footer>
+
+<!-- SDK de Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ===== Configuración de Firebase (YA CONFIGURADA — no tocar) ===== */
+  var firebaseConfig = {
+    apiKey: "AIzaSyCnGUAH4kdnAEXC9Ii9t4BPneSu06Oa6WA",
+    authDomain: "guaguas-a51fd.firebaseapp.com",
+    databaseURL: "https://guaguas-a51fd-default-rtdb.firebaseio.com",
+    projectId: "guaguas-a51fd",
+    storageBucket: "guaguas-a51fd.firebasestorage.app",
+    messagingSenderId: "867314878937",
+    appId: "1:867314878937:web:896feeb52a10c632ab31c8"
+  };
+  /* ================================================================= */
+
+  var CLAVE_CACHE = "reservasGuaguas_cache_v2";
+  var reservasActuales = [];
+  var refReservas = null;
+
+  function cargarCache(){
+    try{ return JSON.parse(localStorage.getItem(CLAVE_CACHE)) || []; }
+    catch(e){ return []; }
+  }
+
+  /* ---------- Utilidades ---------- */
+  function escapar(t){
+    return String(t).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function esFechaValida(s){
+    var m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if(!m) return false;
+    var d = +m[1], mo = +m[2], a = +m[3];
+    if(mo < 1 || mo > 12 || d < 1 || d > 31) return false;
+    if(mo === 2 && d > 29) return false;
+    if([4,6,9,11].indexOf(mo) !== -1 && d > 30) return false;
+    return true;
+  }
+  function fechaHoy(){
+    var h = new Date();
+    function p(n){ return (n < 10 ? "0" : "") + n; }
+    return p(h.getDate()) + "/" + p(h.getMonth()+1) + "/" + h.getFullYear();
+  }
+  function compararFechas(f1, f2){
+    var a = f1.split("/").reverse().join(""), b = f2.split("/").reverse().join("");
+    return a < b ? -1 : (a > b ? 1 : 0);
+  }
+
+  /* ---------- Auto-formato de fecha ---------- */
+  var campoFecha = document.getElementById("fecha");
+  campoFecha.addEventListener("input", function(){
+    var v = this.value.replace(/\D/g, "").slice(0,8);
+    if(v.length > 4)      this.value = v.slice(0,2) + "/" + v.slice(2,4) + "/" + v.slice(4);
+    else if(v.length > 2) this.value = v.slice(0,2) + "/" + v.slice(2);
+    else                  this.value = v;
+  });
+  var filtroFecha = document.getElementById("filtroFecha");
+  filtroFecha.addEventListener("input", function(){
+    var v = this.value.replace(/\D/g, "").slice(0,8);
+    if(v.length > 4)      this.value = v.slice(0,2) + "/" + v.slice(2,4) + "/" + v.slice(4);
+    else if(v.length > 2) this.value = v.slice(0,2) + "/" + v.slice(2);
+    else                  this.value = v;
+    render();
+  });
+
+  /* ---------- Ruta predefine origen/destino ---------- */
+  var rutas = {
+    "La Habana → Imías":        ["La Habana", "Imías"],
+    "Imías → La Habana":        ["Imías", "La Habana"],
+    "Villa Clara → La Habana":  ["Villa Clara", "La Habana"],
+    "La Habana → Santa Clara":  ["La Habana", "Santa Clara"]
+  };
+  document.getElementById("ruta").addEventListener("change", function(){
+    var r = rutas[this.value];
+    if(r){
+      document.getElementById("recogida").value = r[0];
+      document.getElementById("destino").value  = r[1];
+    }
+  });
+
+  /* ---------- Mensajes ---------- */
+  var mensaje = document.getElementById("mensaje");
+  function mostrarMsg(texto, ok){
+    mensaje.textContent = texto;
+    mensaje.className = "msg " + (ok ? "msg-ok" : "msg-error");
+    clearTimeout(mostrarMsg._t);
+    mostrarMsg._t = setTimeout(function(){ mensaje.className = "msg"; }, 4000);
+  }
+
+  /* ---------- Conexión Firebase ---------- */
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.database();
+  refReservas = db.ref("reservas");
+
+  db.ref(".info/connected").on("value", function(s){
+    var on = s.val() === true;
+    var el = document.getElementById("estadoConexion");
+    if(on) el.classList.add("on"); else el.classList.remove("on");
+    document.getElementById("estadoTexto").textContent =
+      on ? "En línea — sincronizado" : "Sin conexión — se enviará al reconectar";
+  });
+
+  firebase.auth().signInAnonymously().catch(function(err){
+    document.getElementById("estadoTexto").textContent =
+      "Error: " + (err && err.code ? err.code : "configuración");
+  });
+
+  refReservas.on("value", function(snap){
+    var datos = [];
+    snap.forEach(function(c){
+      var v = c.val();
+      v.id = c.key;
+      datos.push(v);
+    });
+    reservasActuales = datos;
+    try{ localStorage.setItem(CLAVE_CACHE, JSON.stringify(datos)); }catch(e){}
+    render();
+  }, function(){
+    document.getElementById("estadoTexto").textContent = "Sin permiso: revisa las reglas";
+  });
+
+  if(reservasActuales.length === 0) reservasActuales = cargarCache();
+
+  /* ---------- Guardar reserva ---------- */
+  document.getElementById("formReserva").addEventListener("submit", function(e){
+    e.preventDefault();
+    var ruta = document.getElementById("ruta").value;
+    var nombre = document.getElementById("nombreCliente").value.trim();
+    var fecha = campoFecha.value.trim();
+    var tel = document.getElementById("telefono").value.trim();
+    var recogida = document.getElementById("recogida").value.trim();
+    var destino = document.getElementById("destino").value.trim();
+    var precio = document.getElementById("precio").value;
+    var gestor = document.getElementById("gestor").value.trim();
+
+    if(!ruta)  return mostrarMsg("⚠️ Seleccione la ruta de la guagua.", false);
+    if(!nombre || nombre.length < 3) return mostrarMsg("⚠️ Escriba el nombre del cliente.", false);
+    if(!esFechaValida(fecha)) return mostrarMsg("⚠️ Fecha inválida. Use día/mes/año (ej: 05/12/2026).", false);
+    if(!/^[\d\s+\-]{6,15}$/.test(tel)) return mostrarMsg("⚠️ Número de teléfono inválido.", false);
+    if(!recogida || !destino || !gestor) return mostrarMsg("⚠️ Complete todos los campos obligatorios.", false);
+    precio = parseFloat(precio);
+    if(isNaN(precio) || precio < 0) return mostrarMsg("⚠️ Precio inválido.", false);
+
+    refReservas.push({
+      nombre: nombre,
+      fecha: fecha, ruta: ruta, telefono: tel,
+      recogida: recogida, destino: destino,
+      precio: precio, gestor: gestor,
+      creado: Date.now()
+    });
+
+    mostrarMsg("✅ Reserva guardada. Se sincroniza automáticamente.", true);
+    this.reset();
+    document.getElementById("ruta").focus();
+    render();
+  });
+
+  /* ---------- Renderizar tabla ---------- */
+  var tbody = document.getElementById("tablaReservas");
+  function render(){
+    var datos = reservasActuales.slice().sort(function(a,b){
+      var c = compararFechas(a.fecha, b.fecha);
+      return c !== 0 ? c : ((a.creado||0) - (b.creado||0));
+    });
+    var fr = document.getElementById("filtroRuta").value;
+    var bt = document.getElementById("buscarTel").value.trim();
+    var ff = filtroFecha.value.trim();
+
+    datos = datos.filter(function(r){
+      if(fr && r.ruta !== fr) return false;
+      if(bt){
+        var q = bt.toLowerCase();
+        var enTel = (r.telefono||"").indexOf(bt) !== -1;
+        var enNom = (r.nombre||"").toLowerCase().indexOf(q) !== -1;
+        if(!enTel && !enNom) return false;
+      }
+      if(ff && (r.fecha||"").indexOf(ff) !== 0) return false;
+      return true;
+    });
+
+    tbody.innerHTML = datos.map(function(r){
+      return "<tr>" +
+        "<td>" + escapar(r.fecha) + "</td>" +
+        "<td><strong>" + escapar(r.nombre || "—") + "</strong></td>" +
+        "<td><span class='etiqueta-ruta'>" + escapar(r.ruta) + "</span></td>" +
+        "<td>" + escapar(r.recogida) + "</td>" +
+        "<td>" + escapar(r.destino) + "</td>" +
+        "<td>" + escapar(r.telefono) + "</td>" +
+        "<td>" + r.precio + " CUP</td>" +
+        "<td>" + escapar(r.gestor) + "</td>" +
+        "<td><button class='btn-peligro btn' onclick=\"borrarReserva('" + r.id + "')\">✖</button></td>" +
+      "</tr>";
+    }).join("");
+
+    document.getElementById("vacio").style.display = datos.length ? "none" : "block";
+
+    var todos = reservasActuales;
+    var hoy = fechaHoy();
+    document.getElementById("statTotal").textContent = todos.length;
+    document.getElementById("statHoy").textContent = todos.filter(function(r){ return r.fecha === hoy; }).length;
+    document.getElementById("statMonto").textContent = todos.reduce(function(s,r){ return s + (+r.precio || 0); }, 0);
+  }
+
+  window.borrarReserva = function(id){
+    if(!confirm("¿Eliminar esta reserva?")) return;
+    if(refReservas) refReservas.child(id).remove();
+  };
+
+  /* ---------- Exportar CSV ---------- */
+  window.exportarCSV = function(){
+    if(!reservasActuales.length) return mostrarMsg("⚠️ No hay reservas para exportar.", false);
+    var filas = [["Fecha","Nombre del Cliente","Ruta","Lugar de Recogida","Destino","Teléfono","Precio (CUP)","Gestor"]];
+    reservasActuales.forEach(function(r){
+      filas.push([r.fecha, r.nombre || "", r.ruta, r.recogida, r.destino, r.telefono, r.precio, r.gestor]);
+    });
+    var csv = filas.map(function(f){
+      return f.map(function(c){ return '"' + String(c).replace(/"/g,'""') + '"'; }).join(";");
+    }).join("\r\n");
+    var blob = new Blob(["\uFEFF" + csv], {type:"text/csv;charset=utf-8"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "reservas_guaguas_" + fechaHoy().replace(/\//g,"-") + ".csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  document.getElementById("filtroRuta").addEventListener("change", render);
+  document.getElementById("buscarTel").addEventListener("input", render);
+
+  render();
+})();
+</script>
+</body>
+</html>
