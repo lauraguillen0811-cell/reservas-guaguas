@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gestión de Reservas de Guaguas — Online</title>
+<title>El buquenque — Reservas de Guaguas</title>
 <style>
   :root{
     --azul:#0d47a1; --azul2:#1565c0; --fondo:#f4f6f9; --borde:#d0d7e2;
@@ -15,10 +15,8 @@
     background:var(--fondo); color:var(--texto);
     font-size:16px; line-height:1.45;
   }
-  header{
-    background:var(--azul); color:#fff; padding:14px 16px;
-  }
-  header h1{font-size:1.25rem;}
+  header{background:var(--azul); color:#fff; padding:14px 16px;}
+  header h1{font-size:1.3rem;}
   header p{font-size:.85rem; opacity:.9;}
   .estado{
     display:inline-flex; align-items:center; gap:7px;
@@ -34,15 +32,17 @@
   }
   .card h2{font-size:1.05rem; margin-bottom:10px; color:var(--azul);}
   label{display:block; font-size:.85rem; font-weight:bold; margin-bottom:3px;}
-  .grid{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
-    gap:10px;
-  }
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px;}
   input, select{
     width:100%; padding:9px 10px; font-size:1rem;
     border:1px solid var(--borde); border-radius:6px; background:#fff;
   }
   input:focus, select:focus{outline:2px solid var(--azul2); border-color:var(--azul2);}
+  .dia{font-size:.85rem; color:var(--azul2); margin-top:4px; font-weight:bold; min-height:1.2em;}
+  .dispo{margin-top:10px; padding:8px 12px; border-radius:6px; font-size:.9rem; font-weight:bold; display:none;}
+  .dispo-ok{background:#e6f4ea; color:var(--ok); border:1px solid #a9d8b6; display:block;}
+  .dispo-poco{background:#fff8e1; color:#7a5b00; border:1px solid #f0c649; display:block;}
+  .dispo-llena{background:#fdecea; color:var(--rojo); border:1px solid #f2b8b5; display:block;}
   .btn{
     display:inline-block; padding:10px 18px; font-size:1rem; border:none;
     border-radius:6px; cursor:pointer; font-weight:bold;
@@ -51,16 +51,30 @@
   .btn-primario:hover{background:var(--azul2);}
   .btn-sec{background:#e8edf5; color:var(--azul); border:1px solid var(--borde);}
   .btn-peligro{background:#fdecea; color:var(--rojo); border:1px solid #f2b8b5;
-    padding:4px 10px; font-size:.85rem;}
+    padding:4px 8px; font-size:.85rem;}
+  .btn-editar{background:#e8f0fe; color:var(--azul); border:1px solid #c6d6f0;
+    padding:4px 8px; font-size:.85rem; border-radius:6px; cursor:pointer;}
   .acciones{margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;}
-  table{width:100%; border-collapse:collapse; font-size:.92rem;}
-  th, td{padding:8px 6px; border-bottom:1px solid var(--borde); text-align:left;}
-  th{background:#eef2f8; color:var(--azul); font-size:.8rem; text-transform:uppercase;}
-  tr:hover td{background:#f6f9ff;}
   .etiqueta-ruta{
     display:inline-block; background:#e3f0ff; color:var(--azul);
     border-radius:12px; padding:2px 10px; font-size:.8rem; white-space:nowrap;
   }
+  .lista-grupo{border:1px solid var(--borde); border-radius:8px; margin-bottom:12px; overflow:hidden;}
+  .lista-cab{
+    display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    background:#eef2f8; padding:10px 12px; align-items:center;
+  }
+  .dia-mini{font-size:.85rem; color:#5c6b7e;}
+  .ocupacion{font-size:.85rem; font-weight:bold; color:var(--texto);}
+  .barra{height:8px; background:#dde5ef; border-radius:6px; width:140px; margin-top:4px; overflow:hidden;}
+  .relleno{height:100%;}
+  .r-verde{background:#3aa55c;} .r-amarillo{background:#e2b93b;} .r-rojo{background:#d9534f;}
+  table{width:100%; border-collapse:collapse; font-size:.88rem;}
+  th, td{padding:7px 6px; border-bottom:1px solid var(--borde); text-align:left;}
+  th{background:#eef2f8; color:var(--azul); font-size:.75rem; text-transform:uppercase; white-space:nowrap;}
+  tr:hover td{background:#f6f9ff;}
+  .precio-total{font-weight:bold;}
+  .nowrap{white-space:nowrap;}
   .vacio{text-align:center; color:#6b7787; padding:18px 0;}
   .estadisticas{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px;}
   .stat{
@@ -84,8 +98,8 @@
 <body>
 
 <header>
-  <h1>🚌 Reservas de Guaguas</h1>
-  <p>Sistema de gestión en línea — todos los gestores ven las mismas reservas al instante</p>
+  <h1>🚐 El buquenque</h1>
+  <p>Gestión de reservas de guaguas — en línea, todos los gestores ven las mismas listas</p>
   <div class="estado" id="estadoConexion"><span class="punto"></span><span id="estadoTexto">Conectando…</span></div>
 </header>
 
@@ -103,6 +117,12 @@
     <h2>➕ Nueva reserva</h2>
     <form id="formReserva" novalidate>
       <div class="grid">
+        <div>
+          <label for="fecha">Fecha de la guagua *</label>
+          <input type="text" id="fecha" placeholder="dd/mm/aaaa" maxlength="10" required
+                 inputmode="numeric" autocomplete="off">
+          <div class="dia" id="diaSemana"></div>
+        </div>
         <div>
           <label for="ruta">Ruta de la guagua *</label>
           <select id="ruta" required>
@@ -123,38 +143,45 @@
           <input type="tel" id="telefono" placeholder="Ej: 55321478" required>
         </div>
         <div>
-          <label for="fecha">Fecha (día/mes/año) *</label>
-          <input type="text" id="fecha" placeholder="dd/mm/aaaa" maxlength="10" required
-                 inputmode="numeric" autocomplete="off">
+          <label for="recogida">Lugar de recogida (municipio o provincia) *</label>
+          <input type="text" id="recogida" placeholder="Ej: Santa Clara, terminal de ómnibus" required>
         </div>
         <div>
-          <label for="recogida">Lugar de recogida *</label>
-          <input type="text" id="recogida" placeholder="Ej: Terminal de Ómnibus" required>
-        </div>
-        <div>
-          <label for="destino">Destino *</label>
+          <label for="destino">Destino (municipio o provincia) *</label>
           <input type="text" id="destino" placeholder="Ej: Imías" required>
         </div>
         <div>
-          <label for="precio">Precio (CUP) *</label>
-          <input type="number" id="precio" placeholder="Ej: 2500" min="0" step="1" required>
+          <label for="adelantado">💵 Pago por adelantado (CUP)</label>
+          <input type="number" id="adelantado" placeholder="Ej: 1000 (transferencia)" min="0" step="1" inputmode="numeric">
+        </div>
+        <div>
+          <label for="efectivo">💵 Pago en efectivo (CUP)</label>
+          <input type="number" id="efectivo" placeholder="Ej: 1500" min="0" step="1" inputmode="numeric">
+        </div>
+        <div>
+          <label for="precioTotal">💰 Precio total (se calcula solo)</label>
+          <input type="number" id="precioTotal" placeholder="0" readonly tabindex="-1" style="background:#eef2f8; font-weight:bold;">
         </div>
         <div>
           <label for="gestor">Nombre del gestor *</label>
           <input type="text" id="gestor" placeholder="Ej: Marcos Trujillo" required>
         </div>
       </div>
+
+      <div class="dispo" id="disponibilidad"></div>
+
       <div class="acciones">
-        <button type="submit" class="btn btn-primario">💾 Guardar reserva</button>
+        <button type="submit" class="btn btn-primario" id="btnGuardar">💾 Guardar reserva</button>
+        <button type="button" class="btn btn-sec" id="btnCancelarEd" style="display:none;">✖ Cancelar edición</button>
         <button type="reset" class="btn btn-sec">Limpiar</button>
       </div>
       <div class="msg" id="mensaje" role="alert"></div>
     </form>
   </div>
 
-  <!-- Lista de reservas -->
+  <!-- Listas por guagua y fecha -->
   <div class="card">
-    <h2>📋 Reservas registradas</h2>
+    <h2>📋 Listas por guagua y fecha (43 asientos por guagua)</h2>
     <div class="barra-busqueda">
       <select id="filtroRuta">
         <option value="">Todas las rutas</option>
@@ -164,21 +191,11 @@
         <option value="La Habana → Santa Clara">La Habana → Santa Clara</option>
         <option value="Otra">Otra</option>
       </select>
+      <input type="text" id="filtroFecha" placeholder="Filtrar por fecha dd/mm/aaaa" maxlength="10">
       <input type="text" id="buscarTel" placeholder="Buscar por nombre o teléfono...">
-      <input type="text" id="filtroFecha" placeholder="Filtrar fecha dd/mm/aaaa" maxlength="10">
     </div>
-    <div style="overflow-x:auto;">
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th><th>Cliente</th><th>Ruta</th><th>Recogida</th><th>Destino</th>
-            <th>Teléfono</th><th>Precio</th><th>Gestor</th><th></th>
-          </tr>
-        </thead>
-        <tbody id="tablaReservas"></tbody>
-      </table>
-      <div class="vacio" id="vacio">No hay reservas registradas todavía.</div>
-    </div>
+    <div id="listas"></div>
+    <div class="vacio" id="vacio">No hay reservas todavía. Cada guagua (ruta + fecha) tendrá su lista separada aquí.</div>
     <div class="acciones">
       <button class="btn btn-sec" onclick="exportarCSV()">⬇️ Exportar (CSV)</button>
       <button class="btn btn-sec" onclick="window.print()">🖨️ Imprimir</button>
@@ -188,12 +205,11 @@
 </main>
 
 <footer>
-  <p>Los datos se guardan en línea y se sincronizan entre todos los dispositivos. <span class="no-imprimir">| v2.0 — Proyecto: guaguas-a51fd</span></p>
+  <p>Los datos se guardan en línea y se sincronizan entre todos los dispositivos. <span class="no-imprimir">| v3.0 — El buquenque</span></p>
 </footer>
 
 <!-- SDK de Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
@@ -212,9 +228,27 @@
   };
   /* ================================================================= */
 
-  var CLAVE_CACHE = "reservasGuaguas_cache_v2";
+  firebase.initializeApp(firebaseConfig);
+  var refReservas = firebase.database().ref("reservas");
+
+  var CAPACIDAD = 43;
+  var CLAVE_CACHE = "reservasGuaguas_cache_v3";
+  var DIAS = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+
   var reservasActuales = [];
-  var refReservas = null;
+  var editandoId = null;
+
+  /* ---------- Referencias del DOM ---------- */
+  function byId(id){ return document.getElementById(id); }
+  var campoFecha = byId("fecha"), elDia = byId("diaSemana"), rutaSel = byId("ruta");
+  var nombreIn = byId("nombreCliente"), telIn = byId("telefono");
+  var recogidaIn = byId("recogida"), destinoIn = byId("destino");
+  var adelantadoIn = byId("adelantado"), efectivoIn = byId("efectivo"), totalIn = byId("precioTotal");
+  var gestorIn = byId("gestor");
+  var form = byId("formReserva"), btnGuardar = byId("btnGuardar"), btnCancelarEd = byId("btnCancelarEd");
+  var mensaje = byId("mensaje"), dispoEl = byId("disponibilidad");
+  var filtroRuta = byId("filtroRuta"), filtroFecha = byId("filtroFecha"), buscarTel = byId("buscarTel");
+  var listasEl = byId("listas"), vacioEl = byId("vacio");
 
   function cargarCache(){
     try{ return JSON.parse(localStorage.getItem(CLAVE_CACHE)) || []; }
@@ -230,11 +264,15 @@
   function esFechaValida(s){
     var m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
     if(!m) return false;
-    var d = +m[1], mo = +m[2], a = +m[3];
-    if(mo < 1 || mo > 12 || d < 1 || d > 31) return false;
-    if(mo === 2 && d > 29) return false;
-    if([4,6,9,11].indexOf(mo) !== -1 && d > 30) return false;
-    return true;
+    var d = new Date(+m[3], +m[2]-1, +m[1]);
+    return d.getFullYear()===+m[3] && d.getMonth()===+m[2]-1 && d.getDate()===+m[1];
+  }
+  function diaSemana(f){
+    var m = f.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if(!m) return "";
+    var d = new Date(+m[3], +m[2]-1, +m[1]);
+    if(d.getDate()!==+m[1]) return "";
+    return DIAS[d.getDay()];
   }
   function fechaHoy(){
     var h = new Date();
@@ -245,23 +283,60 @@
     var a = f1.split("/").reverse().join(""), b = f2.split("/").reverse().join("");
     return a < b ? -1 : (a > b ? 1 : 0);
   }
+  function contarOcupadas(ruta, fecha, excluirId){
+    var n = 0;
+    reservasActuales.forEach(function(r){
+      if(r.ruta === ruta && r.fecha === fecha && r.id !== excluirId) n++;
+    });
+    return n;
+  }
 
-  /* ---------- Auto-formato de fecha ---------- */
-  var campoFecha = document.getElementById("fecha");
-  campoFecha.addEventListener("input", function(){
-    var v = this.value.replace(/\D/g, "").slice(0,8);
-    if(v.length > 4)      this.value = v.slice(0,2) + "/" + v.slice(2,4) + "/" + v.slice(4);
-    else if(v.length > 2) this.value = v.slice(0,2) + "/" + v.slice(2);
-    else                  this.value = v;
-  });
-  var filtroFecha = document.getElementById("filtroFecha");
-  filtroFecha.addEventListener("input", function(){
-    var v = this.value.replace(/\D/g, "").slice(0,8);
-    if(v.length > 4)      this.value = v.slice(0,2) + "/" + v.slice(2,4) + "/" + v.slice(4);
-    else if(v.length > 2) this.value = v.slice(0,2) + "/" + v.slice(2);
-    else                  this.value = v;
-    render();
-  });
+  /* ---------- Auto-formato de fecha dd/mm/aaaa ---------- */
+  function autoFecha(el, alCambiar){
+    el.addEventListener("input", function(){
+      var v = this.value.replace(/\D/g, "").slice(0,8);
+      if(v.length > 4)      this.value = v.slice(0,2) + "/" + v.slice(2,4) + "/" + v.slice(4);
+      else if(v.length > 2) this.value = v.slice(0,2) + "/" + v.slice(2);
+      else                  this.value = v;
+      if(alCambiar) alCambiar();
+    });
+  }
+
+  /* ---------- Día de la semana automático ---------- */
+  function actualizarDiaSemana(){
+    var d = diaSemana(campoFecha.value.trim());
+    elDia.textContent = d ? "📅 " + d : "";
+  }
+
+  /* ---------- Disponibilidad de asientos ---------- */
+  function actualizarDisponibilidad(){
+    var ruta = rutaSel.value, f = campoFecha.value.trim();
+    if(!ruta || !esFechaValida(f)){ dispoEl.className = "dispo"; return; }
+    var n = contarOcupadas(ruta, f, editandoId);
+    var restan = CAPACIDAD - n;
+    if(restan <= 0){
+      dispoEl.className = "dispo dispo-llena";
+      dispoEl.textContent = "🚫 Guagua LLENA (" + CAPACIDAD + "/" + CAPACIDAD + "). Elige otra fecha o ruta.";
+    } else if(restan <= 5){
+      dispoEl.className = "dispo dispo-poco";
+      dispoEl.textContent = "⚠️ Quedan pocos asientos: " + n + "/" + CAPACIDAD + " ocupados — restan " + restan + ".";
+    } else {
+      dispoEl.className = "dispo dispo-ok";
+      dispoEl.textContent = "🚦 Ocupados " + n + "/" + CAPACIDAD + " — quedan " + restan + " asientos.";
+    }
+  }
+
+  /* ---------- Total automático ---------- */
+  function calcTotal(){
+    var a = parseFloat(adelantadoIn.value) || 0;
+    var e = parseFloat(efectivoIn.value) || 0;
+    totalIn.value = (a + e) > 0 ? (a + e) : "";
+  }
+
+  autoFecha(campoFecha, function(){ actualizarDiaSemana(); actualizarDisponibilidad(); });
+  autoFecha(filtroFecha, render);
+  adelantadoIn.addEventListener("input", calcTotal);
+  efectivoIn.addEventListener("input", calcTotal);
 
   /* ---------- Ruta predefine origen/destino ---------- */
   var rutas = {
@@ -270,41 +345,24 @@
     "Villa Clara → La Habana":  ["Villa Clara", "La Habana"],
     "La Habana → Santa Clara":  ["La Habana", "Santa Clara"]
   };
-  document.getElementById("ruta").addEventListener("change", function(){
+  rutaSel.addEventListener("change", function(){
     var r = rutas[this.value];
     if(r){
-      document.getElementById("recogida").value = r[0];
-      document.getElementById("destino").value  = r[1];
+      recogidaIn.value = r[0];
+      destinoIn.value  = r[1];
     }
+    actualizarDisponibilidad();
   });
 
   /* ---------- Mensajes ---------- */
-  var mensaje = document.getElementById("mensaje");
   function mostrarMsg(texto, ok){
     mensaje.textContent = texto;
     mensaje.className = "msg " + (ok ? "msg-ok" : "msg-error");
     clearTimeout(mostrarMsg._t);
-    mostrarMsg._t = setTimeout(function(){ mensaje.className = "msg"; }, 4000);
+    mostrarMsg._t = setTimeout(function(){ mensaje.className = "msg"; }, 5000);
   }
 
-  /* ---------- Conexión Firebase ---------- */
-  firebase.initializeApp(firebaseConfig);
-  var db = firebase.database();
-  refReservas = db.ref("reservas");
-
-  db.ref(".info/connected").on("value", function(s){
-    var on = s.val() === true;
-    var el = document.getElementById("estadoConexion");
-    if(on) el.classList.add("on"); else el.classList.remove("on");
-    document.getElementById("estadoTexto").textContent =
-      on ? "En línea — sincronizado" : "Sin conexión — se enviará al reconectar";
-  });
-
-  firebase.auth().signInAnonymously().catch(function(err){
-    document.getElementById("estadoTexto").textContent =
-      "Error: " + (err && err.code ? err.code : "configuración");
-  });
-
+  /* ---------- Conexión Firebase (sin login, más ligero) ---------- */
   refReservas.on("value", function(snap){
     var datos = [];
     snap.forEach(function(c){
@@ -316,102 +374,231 @@
     try{ localStorage.setItem(CLAVE_CACHE, JSON.stringify(datos)); }catch(e){}
     render();
   }, function(){
-    document.getElementById("estadoTexto").textContent = "Sin permiso: revisa las reglas";
+    byId("estadoTexto").textContent = "Sin permiso: publica las REGLAS nuevas (ver instrucciones)";
+  });
+
+  firebase.database().ref(".info/connected").on("value", function(s){
+    var on = s.val() === true;
+    var el = byId("estadoConexion");
+    if(on) el.classList.add("on"); else el.classList.remove("on");
+    byId("estadoTexto").textContent =
+      on ? "En línea — sincronizado" : "Sin conexión — se enviará al reconectar";
   });
 
   if(reservasActuales.length === 0) reservasActuales = cargarCache();
 
-  /* ---------- Guardar reserva ---------- */
-  document.getElementById("formReserva").addEventListener("submit", function(e){
-    e.preventDefault();
-    var ruta = document.getElementById("ruta").value;
-    var nombre = document.getElementById("nombreCliente").value.trim();
-    var fecha = campoFecha.value.trim();
-    var tel = document.getElementById("telefono").value.trim();
-    var recogida = document.getElementById("recogida").value.trim();
-    var destino = document.getElementById("destino").value.trim();
-    var precio = document.getElementById("precio").value;
-    var gestor = document.getElementById("gestor").value.trim();
-
-    if(!ruta)  return mostrarMsg("⚠️ Seleccione la ruta de la guagua.", false);
-    if(!nombre || nombre.length < 3) return mostrarMsg("⚠️ Escriba el nombre del cliente.", false);
-    if(!esFechaValida(fecha)) return mostrarMsg("⚠️ Fecha inválida. Use día/mes/año (ej: 05/12/2026).", false);
-    if(!/^[\d\s+\-]{6,15}$/.test(tel)) return mostrarMsg("⚠️ Número de teléfono inválido.", false);
-    if(!recogida || !destino || !gestor) return mostrarMsg("⚠️ Complete todos los campos obligatorios.", false);
-    precio = parseFloat(precio);
-    if(isNaN(precio) || precio < 0) return mostrarMsg("⚠️ Precio inválido.", false);
-
-    refReservas.push({
-      nombre: nombre,
-      fecha: fecha, ruta: ruta, telefono: tel,
-      recogida: recogida, destino: destino,
-      precio: precio, gestor: gestor,
-      creado: Date.now()
-    });
-
-    mostrarMsg("✅ Reserva guardada. Se sincroniza automáticamente.", true);
-    this.reset();
-    document.getElementById("ruta").focus();
-    render();
+  /* ---------- Estado de edición ---------- */
+  function limpiarEstadoEdicion(){
+    if(editandoId){
+      editandoId = null;
+      btnGuardar.innerHTML = "💾 Guardar reserva";
+      btnCancelarEd.style.display = "none";
+    }
+  }
+  window.cancelarEdicion = function(){
+    limpiarEstadoEdicion();
+    form.reset();
+    actualizarDiaSemana();
+    actualizarDisponibilidad();
+    calcTotal();
+  };
+  btnCancelarEd.addEventListener("click", cancelarEdicion);
+  form.addEventListener("reset", function(){
+    setTimeout(function(){
+      limpiarEstadoEdicion();
+      actualizarDiaSemana();
+      actualizarDisponibilidad();
+      calcTotal();
+    }, 0);
   });
 
-  /* ---------- Renderizar tabla ---------- */
-  var tbody = document.getElementById("tablaReservas");
-  function render(){
-    var datos = reservasActuales.slice().sort(function(a,b){
-      var c = compararFechas(a.fecha, b.fecha);
-      return c !== 0 ? c : ((a.creado||0) - (b.creado||0));
-    });
-    var fr = document.getElementById("filtroRuta").value;
-    var bt = document.getElementById("buscarTel").value.trim();
-    var ff = filtroFecha.value.trim();
+  /* ---------- Guardar reserva ---------- */
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    var ruta = rutaSel.value;
+    var f = campoFecha.value.trim();
+    var nombre = nombreIn.value.trim();
+    var tel = telIn.value.trim();
+    var rec = recogidaIn.value.trim();
+    var des = destinoIn.value.trim();
+    var gestor = gestorIn.value.trim();
+    var aRaw = adelantadoIn.value.trim(), eRaw = efectivoIn.value.trim();
+    var a = aRaw === "" ? 0 : parseFloat(aRaw);
+    var ef = eRaw === "" ? 0 : parseFloat(eRaw);
 
-    datos = datos.filter(function(r){
+    if(!esFechaValida(f)) return mostrarMsg("⚠️ Fecha inválida. Use día/mes/año (ej: 11/11/2026).", false);
+    if(!ruta) return mostrarMsg("⚠️ Seleccione la ruta de la guagua.", false);
+    if(!nombre || nombre.length < 3) return mostrarMsg("⚠️ Escriba el nombre del cliente.", false);
+    if(!/^[\d\s+\-]{6,15}$/.test(tel)) return mostrarMsg("⚠️ Número de teléfono inválido.", false);
+    if(!rec || !des || !gestor) return mostrarMsg("⚠️ Complete recogida, destino y gestor.", false);
+    if(isNaN(a) || a < 0 || isNaN(ef) || ef < 0) return mostrarMsg("⚠️ Los precios no pueden ser negativos.", false);
+    if((a + ef) <= 0) return mostrarMsg("⚠️ Registre el pago: complete adelantado y/o efectivo.", false);
+
+    var ocup = contarOcupadas(ruta, f, editandoId);
+    if(ocup >= CAPACIDAD){
+      actualizarDisponibilidad();
+      return mostrarMsg("🚫 La guagua " + ruta + " del " + f + " está LLENA (" + CAPACIDAD + "/" + CAPACIDAD + ").", false);
+    }
+
+    var duplicado = false;
+    reservasActuales.forEach(function(r){
+      if(r.id !== editandoId && r.telefono === tel && r.fecha === f && r.ruta === ruta) duplicado = true;
+    });
+    if(duplicado && !confirm("⚠️ Ya existe una reserva con ese teléfono para esa misma guagua y fecha.\n¿Guardar de todas formas?")) return;
+
+    var registro = {
+      nombre: nombre, telefono: tel, fecha: f, ruta: ruta,
+      recogida: rec, destino: des,
+      adelantado: a, efectivo: ef, total: a + ef,
+      gestor: gestor, creado: Date.now()
+    };
+
+    if(editandoId){
+      refReservas.child(editandoId).update(registro);
+      mostrarMsg("✅ Reserva actualizada correctamente.", true);
+      limpiarEstadoEdicion();
+    } else {
+      refReservas.push(registro);
+      mostrarMsg("✅ Reserva guardada. Se sincroniza automáticamente.", true);
+    }
+
+    form.reset();
+    actualizarDiaSemana();
+    actualizarDisponibilidad();
+    calcTotal();
+  });
+
+  /* ---------- Editar / Eliminar ---------- */
+  window.editarReserva = function(id){
+    var r = null;
+    for(var i = 0; i < reservasActuales.length; i++){
+      if(reservasActuales[i].id === id){ r = reservasActuales[i]; break; }
+    }
+    if(!r) return;
+    editandoId = id;
+    rutaSel.value = r.ruta;
+    campoFecha.value = r.fecha;
+    actualizarDiaSemana();
+    nombreIn.value = r.nombre || "";
+    telIn.value = r.telefono || "";
+    recogidaIn.value = r.recogida || "";
+    destinoIn.value = r.destino || "";
+    adelantadoIn.value = r.adelantado != null ? r.adelantado : 0;
+    efectivoIn.value = r.efectivo != null ? r.efectivo : (r.precio || 0);
+    gestorIn.value = r.gestor || "";
+    calcTotal();
+    btnGuardar.innerHTML = "💾 Guardar cambios";
+    btnCancelarEd.style.display = "inline-block";
+    actualizarDisponibilidad();
+    window.scrollTo({top:0, behavior:"smooth"});
+  };
+
+  window.borrarReserva = function(id){
+    if(!confirm("¿Eliminar esta reserva de la lista?")) return;
+    refReservas.child(id).remove();
+    if(editandoId === id) limpiarEstadoEdicion();
+  };
+
+  /* ---------- Renderizar listas por guagua y fecha ---------- */
+  function render(){
+    renderListas();
+    var hoy = fechaHoy();
+    byId("statTotal").textContent = reservasActuales.length;
+    byId("statHoy").textContent = reservasActuales.filter(function(r){ return r.fecha === hoy; }).length;
+    byId("statMonto").textContent = reservasActuales.reduce(function(s,r){ return s + (+r.total || +r.precio || 0); }, 0);
+  }
+
+  function renderListas(){
+    var fr = filtroRuta.value, ff = filtroFecha.value.trim();
+    var bt = buscarTel.value.trim().toLowerCase();
+
+    var datos = reservasActuales.filter(function(r){
       if(fr && r.ruta !== fr) return false;
+      if(ff && (r.fecha || "").indexOf(ff) !== 0) return false;
       if(bt){
-        var q = bt.toLowerCase();
-        var enTel = (r.telefono||"").indexOf(bt) !== -1;
-        var enNom = (r.nombre||"").toLowerCase().indexOf(q) !== -1;
-        if(!enTel && !enNom) return false;
+        var enT = (r.telefono || "").indexOf(bt) !== -1;
+        var enN = (r.nombre || "").toLowerCase().indexOf(bt) !== -1;
+        if(!enT && !enN) return false;
       }
-      if(ff && (r.fecha||"").indexOf(ff) !== 0) return false;
       return true;
     });
 
-    tbody.innerHTML = datos.map(function(r){
+    /* Agrupar por fecha + ruta: cada guagua de cada fecha tiene su lista aparte */
+    var grupos = {};
+    datos.forEach(function(r){
+      var k = (r.fecha || "") + "||" + (r.ruta || "");
+      (grupos[k] = grupos[k] || []).push(r);
+    });
+
+    var claves = Object.keys(grupos).sort(function(a, b){
+      var c = compararFechas(a.split("||")[0], b.split("||")[0]);
+      if(c !== 0) return c;
+      return a.split("||")[1].localeCompare(b.split("||")[1]);
+    });
+
+    if(!claves.length){
+      listasEl.innerHTML = "";
+      vacioEl.style.display = "block";
+      return;
+    }
+    vacioEl.style.display = "none";
+
+    listasEl.innerHTML = claves.map(function(k){ return grupoHTML(grupos[k]); }).join("");
+  }
+
+  function grupoHTML(arr){
+    arr.sort(function(a,b){ return (a.creado||0) - (b.creado||0); });
+    var ruta = arr[0].ruta || "—", fecha = arr[0].fecha || "—";
+    var dia = diaSemana(fecha);
+    var n = arr.length, restan = CAPACIDAD - n;
+    var pct = Math.min(100, Math.round(n * 100 / CAPACIDAD));
+    var cls = restan <= 0 ? "r-rojo" : (restan <= 5 ? "r-amarillo" : "r-verde");
+    var recaudado = arr.reduce(function(s,r){ return s + (+r.total || +r.precio || 0); }, 0);
+
+    var filas = arr.map(function(r, i){
+      var ef = r.efectivo != null ? +r.efectivo : (+r.precio || 0);
       return "<tr>" +
-        "<td>" + escapar(r.fecha) + "</td>" +
+        "<td>" + (i + 1) + "</td>" +
         "<td><strong>" + escapar(r.nombre || "—") + "</strong></td>" +
-        "<td><span class='etiqueta-ruta'>" + escapar(r.ruta) + "</span></td>" +
-        "<td>" + escapar(r.recogida) + "</td>" +
-        "<td>" + escapar(r.destino) + "</td>" +
-        "<td>" + escapar(r.telefono) + "</td>" +
-        "<td>" + r.precio + " CUP</td>" +
-        "<td>" + escapar(r.gestor) + "</td>" +
-        "<td><button class='btn-peligro btn' onclick=\"borrarReserva('" + r.id + "')\">✖</button></td>" +
+        "<td>" + escapar(r.telefono || "—") + "</td>" +
+        "<td>" + escapar(r.recogida || "—") + "</td>" +
+        "<td>" + escapar(r.destino || "—") + "</td>" +
+        "<td class='nowrap'>" + ((+r.adelantado) || 0) + "</td>" +
+        "<td class='nowrap'>" + ef + "</td>" +
+        "<td class='nowrap precio-total'>" + (+r.total || +r.precio || 0) + "</td>" +
+        "<td>" + escapar(r.gestor || "—") + "</td>" +
+        "<td class='nowrap'><button class='btn-editar' onclick=\"editarReserva('" + r.id + "')\">✏️</button> " +
+        "<button class='btn-peligro btn' onclick=\"borrarReserva('" + r.id + "')\">✖</button></td>" +
       "</tr>";
     }).join("");
 
-    document.getElementById("vacio").style.display = datos.length ? "none" : "block";
-
-    var todos = reservasActuales;
-    var hoy = fechaHoy();
-    document.getElementById("statTotal").textContent = todos.length;
-    document.getElementById("statHoy").textContent = todos.filter(function(r){ return r.fecha === hoy; }).length;
-    document.getElementById("statMonto").textContent = todos.reduce(function(s,r){ return s + (+r.precio || 0); }, 0);
+    return "<div class='lista-grupo'>" +
+      "<div class='lista-cab'>" +
+        "<div><span class='etiqueta-ruta'>" + escapar(ruta) + "</span> " +
+        "<strong>" + escapar(fecha) + "</strong>" +
+        (dia ? " <span class='dia-mini'>(" + dia + ")</span>" : "") + "</div>" +
+        "<div class='ocupacion'>🪑 " + n + "/" + CAPACIDAD + " · restan " + restan +
+        " · recaudado " + recaudado + " CUP" +
+        "<div class='barra'><div class='relleno " + cls + "' style='width:" + pct + "%'></div></div></div>" +
+      "</div>" +
+      "<div style='overflow-x:auto;'><table>" +
+        "<thead><tr><th>#</th><th>Cliente</th><th>Teléfono</th><th>Recogida</th><th>Destino</th>" +
+        "<th>Adelantado</th><th>Efectivo</th><th>Total</th><th>Gestor</th><th></th></tr></thead>" +
+        "<tbody>" + filas + "</tbody>" +
+      "</table></div>" +
+    "</div>";
   }
-
-  window.borrarReserva = function(id){
-    if(!confirm("¿Eliminar esta reserva?")) return;
-    if(refReservas) refReservas.child(id).remove();
-  };
 
   /* ---------- Exportar CSV ---------- */
   window.exportarCSV = function(){
     if(!reservasActuales.length) return mostrarMsg("⚠️ No hay reservas para exportar.", false);
-    var filas = [["Fecha","Nombre del Cliente","Ruta","Lugar de Recogida","Destino","Teléfono","Precio (CUP)","Gestor"]];
+    var filas = [["Fecha","Día","Cliente","Teléfono","Ruta","Recogida","Destino","Adelantado (CUP)","Efectivo (CUP)","Total (CUP)","Gestor"]];
     reservasActuales.forEach(function(r){
-      filas.push([r.fecha, r.nombre || "", r.ruta, r.recogida, r.destino, r.telefono, r.precio, r.gestor]);
+      filas.push([r.fecha, diaSemana(r.fecha || ""), r.nombre || "", r.telefono || "", r.ruta,
+        r.recogida || "", r.destino || "",
+        r.adelantado != null ? r.adelantado : 0,
+        r.efectivo != null ? r.efectivo : (r.precio || 0),
+        r.total || r.precio || 0, r.gestor || ""]);
     });
     var csv = filas.map(function(f){
       return f.map(function(c){ return '"' + String(c).replace(/"/g,'""') + '"'; }).join(";");
@@ -419,14 +606,15 @@
     var blob = new Blob(["\uFEFF" + csv], {type:"text/csv;charset=utf-8"});
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "reservas_guaguas_" + fechaHoy().replace(/\//g,"-") + ".csv";
+    a.download = "el_buquenque_reservas_" + fechaHoy().replace(/\//g,"-") + ".csv";
     a.click();
     URL.revokeObjectURL(a.href);
   };
 
-  document.getElementById("filtroRuta").addEventListener("change", render);
-  document.getElementById("buscarTel").addEventListener("input", render);
+  filtroRuta.addEventListener("change", render);
+  buscarTel.addEventListener("input", render);
 
+  actualizarDiaSemana();
   render();
 })();
 </script>
